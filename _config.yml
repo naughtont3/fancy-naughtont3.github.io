@@ -273,6 +273,8 @@ plugins:
   - jekyll-toc
   - jekyll-twitter-plugin
   - jemoji
+  - local-extract-categories-tags
+
 
 # Sitemap settings
 defaults:
