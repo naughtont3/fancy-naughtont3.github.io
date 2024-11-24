@@ -1,0 +1,47 @@
+name: Create Jekyll Blog Post
+
+on:
+  workflow_dispatch:  # Allows manual trigger in GitHub Actions UI
+    inputs:
+      title:
+        description: "Post title"
+        required: true
+      categories:
+        description: "Categories (comma-separated)"
+        required: false
+        default: "uncategorized"
+      tags:
+        description: "Tags (comma-separated)"
+        required: false
+        default: ""
+
+jobs:
+  create-post:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Generate new post
+        run: |
+          TITLE="${{ github.event.inputs.title }}"
+          CATEGORIES="${{ github.event.inputs.categories }}"
+          TAGS="${{ github.event.inputs.tags }}"
+          DATE=$(date +"%Y-%m-%d %H:%M:%S")
+          SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
+          FILE="_posts/$(date +'%Y-%m-%d')-$SLUG.md"
+
+          cat _templates/post-template.md | \
+            sed "s/{{date}}/$DATE/" | \
+            sed "s/Your Title Here/$TITLE/" | \
+            sed "s/\[category1, category2\]/[$CATEGORIES]/" | \
+            sed "s/\[tag1, tag2\]/[$TAGS]/" \
+            > $FILE
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add $FILE
+          git commit -m "Create new post: $TITLE"
+          git push
+
