@@ -1,19 +1,32 @@
 name: Create Jekyll Blog Post
 
 on:
-  workflow_dispatch:  # Allows manual trigger in GitHub Actions UI
+  workflow_dispatch:
     inputs:
       title:
         description: "Post title"
         required: true
-      categories:
-        description: "Categories (comma-separated)"
-        required: false
-        default: "uncategorized"
+      category:
+        description: "Select a category"
+        required: true
+        type: choice
+        options:
+          - tech
+          - lifestyle
+          - travel
+          - uncategorized
+
+           formatting •  images •  links •  math •  code •  blockquotes •  external-services
+
       tags:
-        description: "Tags (comma-separated)"
-        required: false
-        default: ""
+        description: "Select a tag (comma-separated)"
+        required: true
+        type: choice
+        options:
+          - tutorial
+          - opinion
+          - review
+          - guide
 
 jobs:
   create-post:
@@ -23,25 +36,30 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Read categories and tags
+        run: |
+          CATEGORIES=$(cat _data/categories.yml | xargs | sed 's/ /, /g')
+          TAGS=$(cat _data/tags.yml | xargs | sed 's/ /, /g')
+        id: categories_tags
+
       - name: Generate new post
         run: |
           TITLE="${{ github.event.inputs.title }}"
-          CATEGORIES="${{ github.event.inputs.categories }}"
+          CATEGORY="${{ github.event.inputs.category }}"
           TAGS="${{ github.event.inputs.tags }}"
           DATE=$(date +"%Y-%m-%d %H:%M:%S")
-          SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
-          FILE="_posts/$(date +'%Y-%m-%d')-$SLUG.md"
+          FILENAME="_posts/$(date +'%Y%m%d')-$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g').md"
 
           cat _templates/post-template.md | \
             sed "s/{{date}}/$DATE/" | \
             sed "s/Your Title Here/$TITLE/" | \
-            sed "s/\[category1, category2\]/[$CATEGORIES]/" | \
+            sed "s/\[category1, category2\]/[$CATEGORY]/" | \
             sed "s/\[tag1, tag2\]/[$TAGS]/" \
-            > $FILE
+            > $FILENAME
 
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add $FILE
+          git add $FILENAME
           git commit -m "Create new post: $TITLE"
           git push
 
