@@ -7,26 +7,13 @@ on:
         description: "Post title"
         required: true
       category:
-        description: "Select a category"
+        description: "Select a category or add a new one"
         required: true
-        type: choice
-        options:
-          - tech
-          - lifestyle
-          - travel
-          - uncategorized
-
-           formatting •  images •  links •  math •  code •  blockquotes •  external-services
-
+        default: "uncategorized"  # Default if none is chosen
       tags:
-        description: "Select a tag (comma-separated)"
-        required: true
-        type: choice
-        options:
-          - tutorial
-          - opinion
-          - review
-          - guide
+        description: "Select tags or add new ones (comma-separated)"
+        required: false
+        default: ""
 
 jobs:
   create-post:
@@ -36,11 +23,21 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Read categories and tags
+      - name: Install dependencies
         run: |
-          CATEGORIES=$(cat _data/categories.yml | xargs | sed 's/ /, /g')
-          TAGS=$(cat _data/tags.yml | xargs | sed 's/ /, /g')
-        id: categories_tags
+          gem install bundler
+          bundle install
+
+      - name: Build site to extract categories and tags
+        run: bundle exec jekyll build
+
+      - name: Load existing categories and tags
+        id: load-data
+        run: |
+          CATEGORIES=$(cat _data/categories.yml | tr '\n' ',' | sed 's/,$//')
+          TAGS=$(cat _data/tags.yml | tr '\n' ',' | sed 's/,$//')
+          echo "categories=$CATEGORIES" >> $GITHUB_ENV
+          echo "tags=$TAGS" >> $GITHUB_ENV
 
       - name: Generate new post
         run: |
@@ -48,7 +45,8 @@ jobs:
           CATEGORY="${{ github.event.inputs.category }}"
           TAGS="${{ github.event.inputs.tags }}"
           DATE=$(date +"%Y-%m-%d %H:%M:%S")
-          FILENAME="_posts/$(date +'%Y%m%d')-$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g').md"
+          SLUG=$(echo "$TITLE" | tr '[:upper:]' '[:lower:]' | sed 's/ /-/g' | sed 's/[^a-z0-9-]//g')
+          FILENAME="_posts/$(date +'%Y-%m-%d')-$SLUG.md"
 
           cat _templates/post-template.md | \
             sed "s/{{date}}/$DATE/" | \
@@ -57,9 +55,20 @@ jobs:
             sed "s/\[tag1, tag2\]/[$TAGS]/" \
             > $FILENAME
 
+          # Append new categories or tags if they don't exist
+          if ! grep -q "$CATEGORY" _data/categories.yml; then
+            echo "$CATEGORY" >> _data/categories.yml
+          fi
+
+          for tag in $(echo "$TAGS" | tr ',' '\n'); do
+            if ! grep -q "$tag" _data/tags.yml; then
+              echo "$tag" >> _data/tags.yml
+            fi
+          done
+
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add $FILENAME
+          git add $FILENAME _data/categories.yml _data/tags.yml
           git commit -m "Create new post: $TITLE"
           git push
 
