@@ -1,14 +1,11 @@
 github_users:
-  - torvalds
-  - alshedivat
+  - naughtont3
 
 repo_description_lines_max: 2
 
 github_repos:
+  - openpmix/openpmix
+  - openpmix/prrte
+  - open-mpi/ompi
+  - pmix/pmix-standard
   - alshedivat/al-folio
-  - jekyll/jekyll
-  - twbs/bootstrap
-  - jquery/jquery
-  - FortAwesome/Font-Awesome
-  - mathjax/MathJax
-  - jpswalsh/academicons
