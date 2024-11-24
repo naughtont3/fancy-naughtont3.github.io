@@ -6,5 +6,5 @@ categories: [github, jekyll]
 tags: []
 ---
 
-Your content here.
-
+The initial blog post test when using Github and a template with Action workflow. 
+This is **very** much a test post.
